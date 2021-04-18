@@ -2,6 +2,7 @@ import os
 import skimage
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 from skimage import data, color, io
 
 # Class which handles the conversion from normal to line drawing
@@ -20,43 +21,52 @@ class LineDraw():
     # Compute Sobel gradient map in the x direction for given image
     # Handle edge pixels by ignoring them
     # ndarray image
-    def computeSobel(self, image, isXDirection):
+    def computeSobelMaps(self, image):
 
         width = len(image[0])
         height = len(image)
 
-        sobel = np.array([[[0.0 for rgb in range(3)] for x in range(width)] for y in range(height)], dtype='uint16')
+        sobelX = np.array([[0 for x in range(width)] for y in range(height)])
+        sobelY = np.array([[0 for x in range(width)] for y in range(height)])
+        sobelMagnitude = np.array([[0 for x in range(width)] for y in range(height)])
         
+        maxMagnitude = 0
+
         for y in range(1, height - 1):
             for x in range(1, width - 1):
-                for rgb in range(3):
-                    # kernel convolution                    
-                    if (isXDirection):  # compute x gradient map
-                        sobel[y][x][rgb] = (np.uint16(image[y - 1][x - 1][rgb]) + # top left                               
-                                                      image[y + 1][x - 1][rgb]  + # bottom left
-                                                      image[y][x - 1][rgb] * 2  + # left
-                                                     -image[y - 1][x + 1][rgb]  + # top right
-                                                     -image[y + 1][x + 1][rgb]  + # top right
-                                                     -image[y][x + 1][rgb] * 2)   # right 
+                # kernel convolution                    
+                sobelX[y][x] = (np.uint16(image[y - 1][x - 1]) + # top left                               
+                                          image[y + 1][x - 1]  + # bottom left
+                                          image[y][x - 1] * 2  + # left
+                                         -image[y - 1][x + 1]  + # top right
+                                         -image[y + 1][x + 1]  + # top right
+                                         -image[y][x + 1] * 2)   # right 
+                                                
+                sobelY[y][x] = (np.uint16(image[y - 1][x - 1]) + # top left                                 
+                                          image[y - 1][x + 1]  + # top right
+                                          image[y - 1][x] * 2  + # top
+                                         -image[y + 1][x - 1]  + # bottom left
+                                         -image[y + 1][x + 1]  + # bottom right
+                                         -image[y + 1][x] * 2)   # bottom 
 
-                    else:               # compute y gradient map
-                        sobel[y][x][rgb] = (np.uint16(image[y - 1][x - 1][rgb]) + # top left                                 
-                                                      image[y - 1][x + 1][rgb]  + # top right
-                                                      image[y - 1][x][rgb] * 2  + # top
-                                                     -image[y + 1][x - 1][rgb]  + # bottom left
-                                                     -image[y + 1][x + 1][rgb]  + # bottom right
-                                                     -image[y + 1][x][rgb] * 2)   # bottom 
-        
-        return color.rgb2gray(sobel)
+                sobelMagnitude[y][x] = math.sqrt((sobelX[y][x] ** 2) + (sobelY[y][x] ** 2))
+
+                # keep track of max value to use in normalization
+                if (maxMagnitude < sobelMagnitude[y][x]):
+                    maxMagnitude = sobelMagnitude[y][x]
+
+        # normalize magnitudes
+        for y in range(1, height - 1):
+            for x in range(1, width - 1):
+                sobelMagnitude[y][x] = (sobelMagnitude[y][x] / maxMagnitude) * 255
+
+        return (sobelX, sobelY, sobelMagnitude)
 
     # Return converted image
     def convertToLine(self):
-        sobelX = self.computeSobel(self.origImage, True)
-        sobelY = self.computeSobel(self.origImage, False)
+        sobelMaps = self.computeSobelMaps(color.rgb2gray(self.origImage))   
 
-        gradientMap = 
-
-        return 
+        return sobelMaps
 
 
 def main():
@@ -66,10 +76,14 @@ def main():
     print(ld.imgWidth)
     print(ld.imgHeight)
 
-    plt.figure()
+    maps = ld.convertToLine()
+    plt.figure("Original")
     plt.imshow(img)
-    plt.figure()
-    plt.imshow(ld.convertToLine())
+
+    for map in maps:
+        plt.figure()
+        plt.imshow(map, cmap='gray')        
+
     io.show()
 
 if __name__ == "__main__":
