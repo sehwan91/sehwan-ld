@@ -10,7 +10,7 @@ public class LDDisplay extends Component
 {
     private BufferedImage bi;
  
-    private static String testFile = "test.jpg";
+    private static String testFile = "test6.jpg";
     
     public LDDisplay(BufferedImage img) {
         bi = img;
@@ -34,6 +34,11 @@ public class LDDisplay extends Component
         // compute the etf from given grayscale image
         LDETF ldetf = new LDETF(ldimg);
         ldetf.computeETF(3, 3, 1);
+
+        LDFDoG ldFDoG = new LDFDoG(1.0, 3.0, 0.99, 0.5);
+        double[][] imgArray = ldFDoG.filterImage(ldetf.getETF(), ldimg.getImageArray());
+        imgArray = ldFDoG.filterImage(ldetf.getETF(), imgArray);
+        imgArray = ldFDoG.filterImage(ldetf.getETF(), imgArray);
 
         long stopTime = System.nanoTime();
         System.out.println((stopTime - startTime) / 1000000 + " ms");
@@ -59,9 +64,9 @@ public class LDDisplay extends Component
         sobelImage.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {System.exit(0);}
         });
-        sobelImage.add(new LDDisplay((helper.conv2DArrToImage(ldetf.gmag, true))));
+        sobelImage.add(new LDDisplay(helper.conv2DArrToImage(ldetf.getMagnitudeMap(), true)));
         sobelImage.pack();
-        sobelImage.setVisible(true);
+        //sobelImage.setVisible(true);
          
         // show visualization of the etf
         JFrame etfImage = new JFrame("ETF visualization");
@@ -71,10 +76,17 @@ public class LDDisplay extends Component
 
         // use helper functions to draw the etf
         // using line integral convolution                
-        etfImage.add(new LDDisplay((helper.lic(ldetf.etf))));
+        etfImage.add(new LDDisplay(helper.lic(ldetf.getETF())));
         etfImage.pack();
-        etfImage.setVisible(true);
+        //etfImage.setVisible(true);
 
-       
+       // show the final image after FDoG
+       JFrame finalImage = new JFrame("Final Image");
+       finalImage.addWindowListener(new WindowAdapter() {
+           public void windowClosing(WindowEvent e) {System.exit(0);}
+       });
+       finalImage.add(new LDDisplay( helper.conv2DArrToImage(imgArray, false) ));
+       finalImage.pack();
+       finalImage.setVisible(true);
     }
 }

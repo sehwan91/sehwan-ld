@@ -1,8 +1,8 @@
 package LineDrawing;
 
 public class LDETF {
-    public double[][][] etf;   // current etf
-    public double[][] gmag;    // gradient magnitude map
+    private double[][][] etf;   // current etf
+    private double[][] gmag;    // gradient magnitude map
 
     // adjustable parameters
     private int ksize = 3;
@@ -33,6 +33,7 @@ public class LDETF {
             }
         }
 
+        
         for (int i = 0; i < img.getW(); ++i) 
         {
             for (int j = 0; j < img.getH(); ++j)
@@ -41,6 +42,7 @@ public class LDETF {
                 etf[i][j][1] /= maxMag;
             }
         }
+        
     }
 
     // initialize etf by applying sobel operator to get initial gradient vectors
@@ -49,8 +51,7 @@ public class LDETF {
     private void initGradientAndETF() {
 
         double maxMag = 0;
-        // first pass: compute gradient vector map and gradient magnitude map
-        // also compute initial etf
+        // compute initial etf and gradient magnitude map
         for (int i = 0; i < img.getW(); ++i) 
         {
             for (int j = 0; j < img.getH(); ++j)
@@ -62,11 +63,11 @@ public class LDETF {
                 double gradY = img.get(i - 1, j - 1) + 2 * img.get(i, j - 1) + img.get(i + 1, j - 1) 
                                - img.get(i - 1, j + 1) - 2 * img.get(i, j + 1) - img.get(i + 1, j + 1);
 
+                double gradMag = Math.sqrt((gradX * gradX) + (gradY * gradY));
+
                 // init etf by rotating gradient vector 90 degrees ccw
                 etf[i][j][0] = -gradY;
-                etf[i][j][1] = gradX;                
-                
-                double gradMag = Math.sqrt((gradX * gradX) + (gradY * gradY));
+                etf[i][j][1] = gradX;     
 
                 // pre-compute max gradient magnitude
                 if (gradMag > maxMag) {
@@ -77,7 +78,7 @@ public class LDETF {
             }
         }
 
-        // second pass: create initial etf and normalize gradient magnitude map
+        // normalize gradient magnitude map
         for (int i = 0; i < img.getW(); ++i) 
         {
             for (int j = 0; j < img.getH(); ++j)
@@ -97,17 +98,17 @@ public class LDETF {
         int dx = cx - rx;
         int dy = cy - ry;
 
-        if (Math.sqrt((dx * dx) + (dy * dy)) >= ksize) {
-            return 0;
+        if (Math.sqrt((dx * dx) + (dy * dy)) < ksize) {
+            return 1;
         }
 
-        return 1;
+        return 0;
     }
 
     //// Equation 1 component equations
 
     private double wm(int cx, int cy, int rx, int ry) {
-        return 0.5 * (1 +  Math.tanh(eta * (gmag[rx][ry] - gmag[cx][cy])));
+        return 0.5 * (1 + Math.tanh(eta * (gmag[rx][ry] - gmag[cx][cy])));
     }
 
     private double dot(int cx, int cy, int rx, int ry) {
@@ -158,7 +159,7 @@ public class LDETF {
                 newETF[i][j][1] = tNewY;
             }        
 
-        etf = newETF;
+        etf = newETF.clone();
         normalizeETF();
     }
 
@@ -177,5 +178,11 @@ public class LDETF {
         }
     }
 
-    // write return functions for the etf
+    public double[][][] getETF() {
+        return etf;
+    }
+
+    public double[][] getMagnitudeMap() {
+        return gmag;
+    }
 }

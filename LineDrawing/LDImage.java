@@ -25,8 +25,9 @@ public class LDImage {
             img = op.filter(colorImg, null);
 
             imgData = img.getData().getPixels(0, 0, w, h, (int[])null);
+            
         } catch (IOException e) {
-
+            System.out.println("Something went wrong with image reading");
         }
     }
 
@@ -53,5 +54,19 @@ public class LDImage {
 
     public BufferedImage getColorImage() {
         return colorImg;
-    }     
+    }
+
+    public double[][] getImageArray() {
+
+        double[][] res = new double[w][h];
+
+        for (int i = 0; i < w; ++i) {
+            for (int j = 0; j < h; ++j) {
+                res[i][j] = get(i, j);
+            }
+        }
+
+        return res;
+    }
+
 }
